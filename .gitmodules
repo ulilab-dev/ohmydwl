@@ -1,0 +1,3 @@
+[submodule "arch/dwl"]
+	path = arch/dwl
+	url = https://github.com/ulilab-dev/ohmydwl.git
