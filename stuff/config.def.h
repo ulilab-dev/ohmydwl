@@ -143,13 +143,13 @@ static const Key keys[] = {
 	/* modifier                  key                  function          argument */
     { MODKEY,                    XKB_KEY_d,           spawn,            {.v = menucmd} },
 	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = termcmd} },
-	{ MODKEY,                    XKB_KEY_e            spawn,            {.v = file} },
-	{ MODKEY,                    XKB_KEY_w            spawn,            SHCMD("waypaper") },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t            spawn,            SHCMD("~/.config/waybar/switch.sh")}
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w            spawn,            SHCMD("~/.config/waybar/toggle_waybar.sh") },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_p            spawn,            SHCMD("hyprshot -m region -o ~/Pictures/Screenshots") },
-	{ MODKEY,                    XKB_KEY_v            spawn,            SHCMD("~/.config/rofi/clipboard.sh") }
-	{ MODKEY,                    XKB_KEY_period       spawn,            SHCMD("rofi -show emoji -config ~/.config/rofi/emoji.rasi") },
+	{ MODKEY,                    XKB_KEY_e,           spawn,            {.v = file} },
+	{ MODKEY,                    XKB_KEY_w,           spawn,            SHCMD("waypaper") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t,           spawn,            SHCMD("~/.config/waybar/switch.sh") }
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w,           spawn,            SHCMD("~/.config/waybar/toggle_waybar.sh") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_p,           spawn,            SHCMD("hyprshot -m region -o ~/Pictures/Screenshots") },
+	{ MODKEY,                    XKB_KEY_v,           spawn,            SHCMD("~/.config/rofi/clipboard.sh") }
+	{ MODKEY,                    XKB_KEY_period,      spawn,            SHCMD("rofi -show emoji -config ~/.config/rofi/emoji.rasi") },
 	
 /*	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} }, */
