@@ -12,7 +12,7 @@ git clone https://codeberg.org/dwl/dwl.git ~/.config/Builds/dwl/
 
 wget -P ~/.config/Builds/patch https://raw.githubusercontent.com/ulilab-dev/dwl-patch/refs/heads/main/dwindle.patch
 
-wget -P ~/.config/Builds/patch https://raw.githubusercontent.com/ulilab-dev/dwl-patch/refs/heads/main/ipc.patch
+wget -P ~/.config/Builds/patch https://codeberg.org/dwl/dwl-patches/raw/branch/main/stale-patches/ipc/ipc.patch
 
 wget -P ~/.config/Builds/patch https://codeberg.org/dwl/dwl-patches/raw/branch/main/patches/vanitygaps/vanitygaps-0.8.patch
 
@@ -32,8 +32,8 @@ patch -i ~/.config/Builds/dwl/patch/alwayscenter.patch
 patch -i ~/.config/Builds/dwl/patch/autostart-0.8.patch
 patch -i ~/.config/Builds/dwl/patch/vanitygaps-0.8.patch
 patch -i ~/.config/Builds/dwl/patch/swapandfocusdir.patch
-patch -i ~/.config/Builds/dwl/patch/dwindle.patch
 patch -i ~/.config/Builds/dwl/patch/ipc.patch
+patch -i ~/.config/Builds/dwl/patch/dwindle.patch
 
 sleep 1 
 mv dwl-ipc-unstable-v2.xml protocols/
