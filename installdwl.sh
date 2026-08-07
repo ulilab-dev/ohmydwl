@@ -32,8 +32,8 @@ patch -i ~/.config/Builds/dwl/patch/alwayscenter.patch
 patch -i ~/.config/Builds/dwl/patch/autostart-0.8.patch
 patch -i ~/.config/Builds/dwl/patch/vanitygaps-0.8.patch
 patch -i ~/.config/Builds/dwl/patch/swapandfocusdir.patch
-patch -i ~/.config/Builds/dwl/patch/ipc.patch
 patch -i ~/.config/Builds/dwl/patch/dwindle.patch
+patch -i ~/.config/Builds/dwl/patch/ipc.patch
 
 sleep 1 
 mv dwl-ipc-unstable-v2.xml protocols/
