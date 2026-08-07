@@ -44,4 +44,4 @@ cp $SCRIPT_DIR/stuff/dwl.desktop ~/.config/Builds/dwl/
 cp $SCRIPT_DIR/stuff/config.def.h ~/.config/Builds/dwl/
 
 sleep 1
-cp -r config/* ~/.config/
+cp -r $SCRIPT_DIR/config/* ~/.config/
