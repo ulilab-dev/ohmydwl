@@ -33,9 +33,14 @@ static const char *const autostart[] = {
 };
 
 static const Rule rules[] = {
-	/* app_id             title       tags mask     isfloating   monitor */
-	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	/* app_id                         title       tags mask     isfloating   monitor */
+	{ "Gimp_EXAMPLE",                 NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",              NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	{ "org.pulseaudio.pavucontrol",   NULL,       0,            1,           -1 },
+	{ "localsend",                    NULL,       0,            1,           -1 },
+	{ "org.gnome.baobab",             NULL,       0,            1,           -1 },
+	{ "waypaper",                     NULL,       0,            1,           -1 },
+
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
 
@@ -131,12 +136,20 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 /* commands */
 static const char *termcmd[] = { "kitty", NULL };
 static const char *menucmd[] = { "rofi","-show","drun", NULL };
+static const char *file[] = {"dolphin", NULL };
 
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: 2 -> at, etc. */
 	/* modifier                  key                  function          argument */
-	{ MODKEY,                    XKB_KEY_d,           spawn,            {.v = menucmd} },
+    { MODKEY,                    XKB_KEY_d,           spawn,            {.v = menucmd} },
 	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = termcmd} },
+	{ MODKEY,                    XKB_KEY_e            spawn,            {.v = file} },
+	{ MODKEY,                    XKB_KEY_w            spawn,            SHCMD("waypaper") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t            spawn,            SHCMD("~/.config/waybar/switch.sh")}
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w            spawn,            SHCMD("~/.config/waybar/toggle_waybar.sh") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_p            spawn,            SHCMD("hyprshot -m region -o ~/Pictures/Screenshots") },
+	{ MODKEY,                    XKB_KEY_v            spawn,            SHCMD("~/.config/rofi/clipboard.sh") }
+	{ MODKEY,                    XKB_KEY_period       spawn,            SHCMD("rofi -show emoji -config ~/.config/rofi/emoji.rasi") },
 	
 /*	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} }, */
