@@ -12,7 +12,7 @@ git clone https://codeberg.org/dwl/dwl.git ~/.config/Builds/dwl/
 
 wget -P ~/.config/Builds/patch https://raw.githubusercontent.com/ulilab-dev/dwindle_dwl/refs/heads/main/dwindle.patch
 
-wget -P ~/.config/Builds/patch https://codeberg.org/dwl/dwl-patches/raw/branch/main/stale-patches/ipc/ipc.patch
+wget -P ~/.config/Builds/patch https://raw.githubusercontent.com/ulilab-dev/dwindle_dwl/refs/heads/main/ipc.patch
 
 wget -P ~/.config/Builds/patch https://codeberg.org/dwl/dwl-patches/raw/branch/main/patches/vanitygaps/vanitygaps-0.8.patch
 
