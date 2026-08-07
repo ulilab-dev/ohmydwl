@@ -43,5 +43,5 @@ cp $SCRIPT_DIR/stuff/autostart.sh ~/.config/Builds/dwl/
 cp $SCRIPT_DIR/stuff/dwl.desktop ~/.config/Builds/dwl/
 cp $SCRIPT_DIR/stuff/config.def.h ~/.config/Builds/dwl/
 
-sleep 1
+sleep 0.5
 cp -r $SCRIPT_DIR/config/* ~/.config/
