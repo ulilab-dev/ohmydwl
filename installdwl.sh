@@ -45,3 +45,6 @@ cp $SCRIPT_DIR/stuff/config.def.h ~/.config/Builds/dwl/
 
 sleep 0.5
 cp -r $SCRIPT_DIR/config/* ~/.config/
+
+sleep 1
+sudo make clean install
