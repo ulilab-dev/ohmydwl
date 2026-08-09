@@ -41,8 +41,9 @@ color: rgba(255, 255, 255, 0.3);
 }
 
 #tags button {
+background: transparent;
 color: #9e9b99;
-padding: 0 3px;
+padding: 0 5px;
 border-radius: 8px;
 transition: all 0.2s ease;
 }
