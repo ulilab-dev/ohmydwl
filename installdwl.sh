@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-sudo cp stuff/ohmydwl /bin/ohmydwl 
+sudo cp stuff/ohmydwl /bin 
 
 sleep 1
 mkdir -p ~/.config/Builds/dwl/ 
@@ -28,12 +28,12 @@ mv ~/.config/Builds/patch ~/.config/Builds/dwl/
 sleep 0.5
 cd ~/.config/Builds/dwl || exit 1
 
-patch -i ~/.config/Builds/dwl/patch/alwayscenter.patch
-patch -i ~/.config/Builds/dwl/patch/autostart-0.8.patch
-patch -i ~/.config/Builds/dwl/patch/vanitygaps-0.8.patch
-patch -i ~/.config/Builds/dwl/patch/swapandfocusdir.patch
-patch -i ~/.config/Builds/dwl/patch/ipc.patch
-patch -i ~/.config/Builds/dwl/patch/dwindle.patch
+patch -i patch/alwayscenter.patch
+patch -i patch/autostart-0.8.patch
+patch -i patch/vanitygaps-0.8.patch
+patch -i patch/swapandfocusdir.patch
+patch -i patch/ipc.patch
+patch -i patch/dwindle.patch
 
 sleep 1 
 mv dwl-ipc-unstable-v2.xml protocols/
