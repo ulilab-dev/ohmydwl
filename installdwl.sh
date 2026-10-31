@@ -99,23 +99,25 @@ install_packages() {
 install_config() {
     info "Installing configuration to $CONFIG_DIR..."
     mkdir -p "$CONFIG_DIR"
+    mkdir -p "$HOME/Pictures"
 
     # dwl/ and every directory inside config/ land directly in ~/.config
     local entry target
     for entry in "$SCRIPT_DIR/dwl" "$SCRIPT_DIR"/config/*; do
         target="$CONFIG_DIR/$(basename "$entry")"
         cp -r "$entry" "$target"
-    done
-}
-    
-    mkdir -p "$HOME/Pictures"
- 
-    # copy wallpapers to ~/Pictures/wallpapers
+
+   # copy wallpapers to ~/Pictures/wallpapers
     if [[ -d "$SCRIPT_DIR/wallpapers" ]]; then
         cp "$SCRIPT_DIR/wallpapers" "$HOME/Pictures/"
     fi
-      
+   
+    done
 }
+    
+ 
+      
+
 
 build_dwl() {
     pkg-config --exists wlroots-0.20 \
