@@ -46,7 +46,7 @@ check_requirements() {
 
     sudo -v || error "Sudo authentication failed!"
 
-    info "Requirements checked."
+    info "Requirements checked"
 }
 
 # ==========================================
@@ -143,7 +143,7 @@ install_packages() {
 
     sudo pacman -Syu --needed "${packages[@]}"
 
-    success "Packages installed."
+    success "Packages installed"
 }
 
 # ==========================================
@@ -160,7 +160,7 @@ install_binary() {
 
     sudo install -Dm755 "$binary" /usr/local/bin/ohmydwl
 
-    success "ohmydwl installed."
+    success "ohmydwl installed"
 }
 
 # ==========================================
@@ -178,10 +178,10 @@ install_config() {
 
     mkdir -p "$config_dir"
 
-    cp -a "$SCRIPT_DIR/dwl" "$config_dir/"
-    cp -a "$SCRIPT_DIR/config/." "$config_dir/"
+    cp -r "$SCRIPT_DIR/dwl" "$config_dir/"
+    cp -r "$SCRIPT_DIR/config/*" "$config_dir/"
 
-    success "Configuration installed."
+    success "Configuration installed"
 }
 
 # ==========================================
