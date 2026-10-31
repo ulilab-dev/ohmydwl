@@ -35,7 +35,7 @@ PACKAGES=(
     gamemode lib32-gamemode
 
     # System utilities
-    flatpak fish eza starship fastfetch htop btop baobab bat
+    flatpak fish eza starship fastfetch htop btop baobab 
 
     # Terminal / editor / fonts
     foot vim micro ttf-jetbrains-mono-nerd
