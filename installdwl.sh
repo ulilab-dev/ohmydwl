@@ -62,7 +62,7 @@ PACKAGES=(
     dolphin ark kate gwenview archlinux-xdg-menu kde-cli-tools
 
     # Power / authentication
-    power-profiles-daemon polkit-gnome
+    power-profiles-daemon polkit-gnome    
 )
 
 check_requirements() {
