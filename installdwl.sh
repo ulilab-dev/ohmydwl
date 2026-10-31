@@ -158,7 +158,7 @@ install_binary() {
 
     info "Installing ohmydwl..."
 
-    sudo install -Dm755 "$binary" /bin/ohmydwl
+    sudo install -Dm755 "$binary" /usr/local/bin/ohmydwl
 
     success "ohmydwl installed."
 }
