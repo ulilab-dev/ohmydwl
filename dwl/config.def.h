@@ -13,11 +13,11 @@ static const unsigned int gappih           = 2; /* horiz inner gap between windo
 static const unsigned int gappiv           = 2; /* vert inner gap between windows */
 static const unsigned int gappoh           = 4; /* horiz outer gap between windows and screen edge */
 static const unsigned int gappov           = 4; /* vert outer gap between windows and screen edge */
+static const unsigned int snap             = 32; /* snap pixel */
 static const float rootcolor[]             = COLOR(0x222222ff);
 static const float bordercolor[]           = COLOR(0x444444ff);
 static const float focuscolor[]            = COLOR(0xaaaaadad);
 static const float urgentcolor[]           = COLOR(0xff0000ff);
-/* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
 
 /* tagging - TAGCOUNT must be no greater than 31 */
@@ -28,19 +28,18 @@ static int log_level = WLR_ERROR;
 
 /* Autostart */
 static const char *const autostart[] = {
-  "sh","-c",("~/.config/Builds/dwl/autostart.sh"), NULL,
-        NULL /* terminate */
+	"sh","-c",("~/.config/Builds/dwl/autostart.sh"), NULL,
+	NULL /* terminate */
 };
 
 static const Rule rules[] = {
-	/* app_id                         title       tags mask     isfloating   monitor */
-	{ "Gimp_EXAMPLE",                 NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",              NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	/* app_id             title       tags mask     isfloating   monitor */
+	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
 	{ "org.pulseaudio.pavucontrol",   NULL,       0,            1,           -1 },
 	{ "localsend",                    NULL,       0,            1,           -1 },
 	{ "org.gnome.baobab",             NULL,       0,            1,           -1 },
 	{ "waypaper",                     NULL,       0,            1,           -1 },
-
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
 
@@ -124,11 +123,12 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 /* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
 #define MODKEY WLR_MODIFIER_LOGO
 
-#define TAGKEYS(KEY,SKEY,TAG) \
-	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_CTRL,  KEY,            toggleview,      {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_SHIFT, SKEY,           tag,             {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY,toggletag, {.ui = 1 << TAG} }
+#define TAGKEYS(KEY, SHIFTKEY, TAG) \
+        { MODKEY, KEY, view, {.ui = 1 << TAG} }, \
+        { MODKEY|WLR_MODIFIER_CTRL, KEY, toggleview, {.ui = 1 << TAG} }, \
+        { MODKEY|WLR_MODIFIER_SHIFT, KEY, tag, {.ui = 1 << TAG} }, \
+        { MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, KEY, toggletag, {.ui = 1 << TAG} }, \
+        { MODKEY|WLR_MODIFIER_SHIFT, SHIFTKEY, view, {.ui = 1 << TAG} }
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
@@ -139,7 +139,6 @@ static const char *menucmd[] = { "rofi","-show","drun", NULL };
 static const char *file[] = {"dolphin", NULL };
 
 static const Key keys[] = {
-	/* Note that Shift changes certain key codes: 2 -> at, etc. */
 	/* modifier                  key                  function          argument */
     { MODKEY,                    XKB_KEY_d,           spawn,            {.v = menucmd} },
 	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = termcmd} },
@@ -218,11 +217,11 @@ static const Key keys[] = {
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_e,           quit,             {0} },
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
-	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
+	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_BackSpace, quit, {0} },
 	/* Ctrl-Alt-Fx is used to switch to another VT, if you don't know what a VT is
 	 * do not remove them.
 	 */
-#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
+#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_F##n, chvt, {.ui = (n)} }
 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
 	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
 };
@@ -231,4 +230,12 @@ static const Button buttons[] = {
 	{ MODKEY, BTN_LEFT,   moveresize,     {.ui = CurMove} },
 	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
 	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
+};
+
+static const Axis axes[] = {
+	/* example of volume control:
+	{ MODKEY, AxisUp,   spawn, SHCMD("volume-up_EXAMPLE") },
+	{ MODKEY, AxisDown, spawn, SHCMD("volume-down_EXAMPLE") }, */
+	{ 0, 0, NULL, {0} },
+	/* does nothing, but the array cannot be empty */
 };
