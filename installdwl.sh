@@ -106,6 +106,15 @@ install_config() {
         target="$CONFIG_DIR/$(basename "$entry")"
         cp -r "$entry" "$target"
     done
+    
+    mkdir -p "$HOME/Pictures"
+ 
+    # copy wallpapers to ~/Pictures/wallpapers
+    if [[ -d "$SCRIPT_DIR/wallpapers" ]]; then
+        cp "$SCRIPT_DIR/wallpapers" "$HOME/Pictures/"
+    fi
+}
+      
 }
 
 build_dwl() {
