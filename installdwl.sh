@@ -76,6 +76,33 @@ check_requirements() {
     sudo -v || error "sudo authentication failed"
 }
 
+add_cachyos_repo() {
+    # waypaper is not in the official Arch repositories; the CachyOS repo provides it.
+    if grep -Eq '^\[cachyos[^]]*\]' /etc/pacman.conf; then
+        info "CachyOS repository already configured"
+        return
+    fi
+    if [[ "$(uname -m)" != x86_64 ]]; then
+        warning "CachyOS repository supports x86_64 only"
+        return
+    fi
+ 
+    info "Adding CachyOS repository..."
+ 
+    # Trust the CachyOS signing key
+    sudo pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
+    sudo pacman-key --lsign-key F3B607488DB35A47
+
+    sudo pacman -U \
+   'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst' \
+   'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-mirrorlist-27-1-any.pkg.tar.zst'
+
+    printf '\n[cachyos]\nInclude = /etc/pacman.d/cachyos-mirrorlist\n' | sudo tee -a /etc/pacman.conf >/dev/null
+
+    sudo pacman -Syu --needed "${PACMAN_FLAGS[@]}" cachyos-keyring
+    sudo pacman-key --populate cachyos
+ }
+
 install_packages() {
     info "Upgrading system and syncing databases..."
     sudo pacman -Syu "${PACMAN_FLAGS[@]}"
