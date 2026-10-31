@@ -104,14 +104,8 @@ install_config() {
     local entry target
     for entry in "$SCRIPT_DIR/dwl" "$SCRIPT_DIR"/config/*; do
         target="$CONFIG_DIR/$(basename "$entry")"
-        rm -rf "$target"
-        cp -a "$entry" "$target"
+        cp -r "$entry" "$target"
     done
-
-    find "$DWL_DIR" "$CONFIG_DIR/waybar" "$CONFIG_DIR/rofi" \
-        -maxdepth 2 -type f -name '*.sh' -exec chmod +x {} +
-
-    mkdir -p "$HOME/Pictures/Screenshots" "$HOME/Pictures/wallpapers"
 }
 
 build_dwl() {
