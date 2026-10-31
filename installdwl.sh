@@ -77,7 +77,7 @@ check_requirements() {
 }
 
 add_cachyos_repo() {
-    # waypaper is not in the official Arch repositories; the CachyOS repo provides it.
+
     if grep -Eq '^\[cachyos[^]]*\]' /etc/pacman.conf; then
         info "CachyOS repository already configured"
         return
@@ -89,7 +89,6 @@ add_cachyos_repo() {
  
     info "Adding CachyOS repository..."
  
-    # Trust the CachyOS signing key
     sudo pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
     sudo pacman-key --lsign-key F3B607488DB35A47
 
