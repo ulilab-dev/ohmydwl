@@ -114,10 +114,6 @@ install_config() {
    
     done
 }
-    
- 
-      
-
 
 build_dwl() {
     pkg-config --exists wlroots-0.20 \
