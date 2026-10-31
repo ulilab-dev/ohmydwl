@@ -1,374 +1,147 @@
 #!/usr/bin/env bash
-
-# ==========================================
-#                 CONFIG
-# ==========================================
+# ohmydwl installer (Arch Linux, official repositories only)
+# Usage: bash installdwl.sh [-y|--yes]
 
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config"
-DWL_SRC_DIR="$CONFIG_DIR/dwl"
+DWL_DIR="$CONFIG_DIR/dwl"
 
-ASSUME_YES=0
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; RESET='\033[0m'
+
+log()     { printf '%b[%s]%b %s\n' "$1" "$2" "$RESET" "$3"; }
+info()    { log "$BLUE"   INFO    "$1"; }
+success() { log "$GREEN"  OK      "$1"; }
+warning() { log "$YELLOW" WARNING "$1"; }
+error()   { log "$RED"    ERROR   "$1" >&2; exit 1; }
+
+trap 'log "$RED" ERROR "Failed at line $LINENO" >&2' ERR
+
 PACMAN_FLAGS=()
-AUR_FLAGS=()
-MISSING_PKGS=()
+case "${1:-}" in
+    "")           ;;
+    -y|--yes)     PACMAN_FLAGS+=(--noconfirm) ;;
+    *)            error "Usage: $(basename "$0") [-y|--yes]" ;;
+esac
 
-# ==========================================
-#                 COLORS
-# ==========================================
+PACKAGES=(
+    # Wayland / build dependencies
+    wlroots0.20 wayland wayland-protocols libxkbcommon libinput
+    xdg-desktop-portal-wlr fcft tllist wlr-randr
+    git base-devel pkgconf
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-RESET='\033[0m'
+    # Gaming
+    gamemode lib32-gamemode
 
-info() {
-    echo -e "${BLUE}[INFO]${RESET} $1"
-}
+    # System utilities
+    flatpak fish eza starship fastfetch htop btop baobab bat
 
-success() {
-    echo -e "${GREEN}[OK]${RESET} $1"
-}
+    # Terminal / editor / fonts
+    kitty vim micro ttf-jetbrains-mono-nerd
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${RESET} $1"
-}
+    # Launcher / bar / session
+    rofi rofi-emoji waybar wlogout
 
-error() {
-    echo -e "${RED}[ERROR]${RESET} $1" >&2
-    exit 1
-}
+    # Wayland utilities
+    hyprshot hyprlock awww waypaper cliphist wl-clipboard wl-clip-persist
+    grim slurp jq
 
-trap 'echo -e "${RED}[ERROR]${RESET} Script failed at line $LINENO" >&2' ERR
+    # Notifications
+    dunst libnotify
 
-usage() {
-    cat <<EOF
-Usage: $(basename "$0") [options]
+    # Qt / GTK
+    qt5-wayland qt6-wayland qt6ct nwg-look adw-gtk-theme
 
-Options:
-  -y, --yes    Do not ask for confirmation (passes --noconfirm to pacman/AUR helper)
-  -h, --help   Show this help
-EOF
-}
+    # Network
+    network-manager-applet networkmanager-dmenu networkmanager
 
-parse_args() {
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -y|--yes)
-                ASSUME_YES=1
-                PACMAN_FLAGS+=(--noconfirm)
-                AUR_FLAGS+=(--noconfirm)
-                ;;
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            *)
-                usage
-                error "Unknown option: $1"
-                ;;
-        esac
-        shift
-    done
-}
+    # Multimedia
+    ffmpegthumbs pavucontrol haruna
 
-# ==========================================
-#             CHECK REQUIREMENTS
-# ==========================================
+    # KDE applications
+    dolphin ark kate gwenview archlinux-xdg-menu kde-cli-tools
+
+    # Power / authentication
+    power-profiles-daemon polkit-gnome
+)
 
 check_requirements() {
-    command -v pacman >/dev/null 2>&1 || error "pacman not found! This installer supports Arch-based systems only."
+    command -v pacman >/dev/null 2>&1 || error "pacman not found (Arch-based systems only)"
+    command -v sudo   >/dev/null 2>&1 || error "sudo not found"
+    [[ $EUID -ne 0 ]]                 || error "do not run this script as root"
 
-    [[ $EUID -ne 0 ]] || error "don't run this script as root!"
+    [[ -d "$SCRIPT_DIR/dwl" && -d "$SCRIPT_DIR/config" && -f "$SCRIPT_DIR/stuff/ohmydwl" ]] \
+        || error "run this script from the ohmydwl repository (dwl/, config/, stuff/ missing)"
 
-    command -v sudo >/dev/null 2>&1 || error "sudo not found!"
-    sudo -v || error "Sudo authentication failed!"
-
-    [[ -d "$SCRIPT_DIR/dwl" ]]      || error "dwl directory not found!"
-    [[ -d "$SCRIPT_DIR/config" ]]   || error "config directory not found!"
-    [[ -f "$SCRIPT_DIR/stuff/ohmydwl" ]] || error "stuff/ohmydwl not found!"
-
-    info "Requirements checked"
-}
-
-# ==========================================
-#             PACKAGE INSTALLATION
-# ==========================================
-
-detect_aur_helper() {
-    local helper
-    for helper in paru yay; do
-        if command -v "$helper" >/dev/null 2>&1; then
-            echo "$helper"
-            return 0
-        fi
-    done
-    return 1
+    sudo -v || error "sudo authentication failed"
 }
 
 install_packages() {
-
-    local packages=(
-        # Wayland / wlroots
-        wlroots0.20
-        wayland
-        wayland-protocols
-        libxkbcommon
-        libinput
-        xdg-desktop-portal-wlr
-        fcft
-        tllist
-        wlr-randr
-
-        # Gaming
-        gamemode
-        lib32-gamemode
-
-        # Development / build
-        git
-        base-devel
-        pkgconf
-
-        # System utilities
-        flatpak
-        fish
-        eza
-        starship
-        fastfetch
-        htop
-        btop
-        baobab
-        bat
-
-        # Terminal / Editor
-        kitty
-        vim
-        micro
-
-        # Fonts
-        ttf-jetbrains-mono-nerd
-
-        # Launcher / Bar / Session
-        rofi
-        rofi-emoji
-        waybar
-        wlogout
-
-        # Wayland utilities
-        hyprshot
-        hyprlock
-        awww
-        waypaper
-        cliphist
-        wl-clipboard
-        wl-clip-persist
-        grim
-        slurp
-        jq
-
-        # Notifications
-        dunst
-        libnotify
-
-        # Qt / GTK
-        qt5-wayland
-        qt6-wayland
-        qt6ct
-        nwg-look
-        adw-gtk-theme
-
-        # Network
-        network-manager-applet
-        networkmanager-dmenu
-        networkmanager
-
-        # Multimedia
-        ffmpegthumbs
-        pavucontrol
-        haruna
-
-        # KDE applications / utilities
-        dolphin
-        ark
-        kate
-        gwenview
-        archlinux-xdg-menu
-        kde-cli-tools
-
-        # Power management
-        power-profiles-daemon
-
-        # Authentication
-        polkit-gnome
-    )
-
-    info "Synchronizing and upgrading system (pacman -Syu)..."
+    info "Upgrading system and syncing databases..."
     sudo pacman -Syu "${PACMAN_FLAGS[@]}"
 
-    # Split packages into official-repo and AUR/unknown, so one missing
-    # package does not abort the whole transaction.
-    local repo_pkgs=()
-    local other_pkgs=()
-    local pkg
+    # Install only what exists in the enabled repositories; report the rest.
+    local wanted repos available skipped
+    wanted="$(printf '%s\n' "${PACKAGES[@]}" | sort -u)"
+    repos="$(pacman -Slq | sort -u)"
+    available="$(comm -12 <(printf '%s\n' "$wanted") <(printf '%s\n' "$repos"))"
+    skipped="$(comm -23 <(printf '%s\n' "$wanted") <(printf '%s\n' "$repos"))"
 
-    for pkg in "${packages[@]}"; do
-        if pacman -Si "$pkg" >/dev/null 2>&1; then
-            repo_pkgs+=("$pkg")
-        else
-            other_pkgs+=("$pkg")
-        fi
-    done
+    info "Installing packages..."
+    mapfile -t available <<<"$available"
+    sudo pacman -S --needed "${PACMAN_FLAGS[@]}" "${available[@]}"
 
-    info "Installing ${#repo_pkgs[@]} packages from official repositories..."
-    sudo pacman -S --needed "${PACMAN_FLAGS[@]}" "${repo_pkgs[@]}"
-
-    if [[ ${#other_pkgs[@]} -gt 0 ]]; then
-        local helper=""
-        if helper="$(detect_aur_helper)"; then
-            info "Installing from AUR with $helper: ${other_pkgs[*]}"
-            if ! "$helper" -S --needed "${AUR_FLAGS[@]}" "${other_pkgs[@]}"; then
-                warning "AUR installation reported errors."
-                MISSING_PKGS+=("${other_pkgs[@]}")
-            fi
-        else
-            warning "Not in official repositories and no AUR helper (paru/yay) found:"
-            warning "  ${other_pkgs[*]}"
-            MISSING_PKGS+=("${other_pkgs[@]}")
-        fi
+    if [[ -n "$skipped" ]]; then
+        warning "Not found in official repositories, skipped: $(tr '\n' ' ' <<<"$skipped")"
     fi
-
-    success "Package step finished"
-}
-
-# ==========================================
-#             COPY CONFIGURATION
-# ==========================================
-
-remove_existing() {
-    local target="$1"
-
-    [[ -e "$target" || -L "$target" ]] || return 0
-
-    rm -rf "$target"
 }
 
 install_config() {
-
-    info "Installing configurations..."
-
+    info "Installing configuration to $CONFIG_DIR..."
     mkdir -p "$CONFIG_DIR"
 
-    local entry name
-
-    # dwl source + autostart
-    remove_existing "$DWL_SRC_DIR"
-    cp -a "$SCRIPT_DIR/dwl" "$DWL_SRC_DIR"
-
-    # every directory inside config/ (kitty, rofi, waybar, ...)
-    for entry in "$SCRIPT_DIR"/config/*; do
-        [[ -e "$entry" ]] || continue
-        name="$(basename "$entry")"
-        remove_existing "$CONFIG_DIR/$name"
-        cp -a "$entry" "$CONFIG_DIR/$name"
+    # dwl/ and every directory inside config/ land directly in ~/.config
+    local entry target
+    for entry in "$SCRIPT_DIR/dwl" "$SCRIPT_DIR"/config/*; do
+        target="$CONFIG_DIR/$(basename "$entry")"
+        rm -rf "$target"
+        cp -a "$entry" "$target"
     done
 
-    # make sure helper scripts are executable
-    find "$CONFIG_DIR/dwl" "$CONFIG_DIR/waybar" "$CONFIG_DIR/rofi" \
-        -maxdepth 2 -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
+    find "$DWL_DIR" "$CONFIG_DIR/waybar" "$CONFIG_DIR/rofi" \
+        -maxdepth 2 -type f -name '*.sh' -exec chmod +x {} +
 
-    # directories referenced by keybindings / hyprlock
     mkdir -p "$HOME/Pictures/Screenshots" "$HOME/Pictures/wallpapers"
-
-    success "Configuration installed"
 }
-
-# ==========================================
-#             BUILD AND INSTALL DWL
-# ==========================================
 
 build_dwl() {
-
-    [[ -f "$DWL_SRC_DIR/Makefile" ]] || error "$DWL_SRC_DIR/Makefile not found!"
-
-    command -v make >/dev/null 2>&1 || error "make not found (install base-devel)!"
     pkg-config --exists wlroots-0.20 \
-        || error "wlroots-0.20 not found. Install wlroots0.20 and run again."
+        || error "wlroots-0.20 not found (package wlroots0.20 is unavailable or failed to install)"
 
     info "Building dwl..."
-
-    # config.h is generated from config.def.h by the Makefile if missing.
-    # Edit $DWL_SRC_DIR/config.h afterwards and rebuild to customize.
-    make -C "$DWL_SRC_DIR" clean >/dev/null 2>&1 || true
-    make -C "$DWL_SRC_DIR"
-
-    info "Installing dwl (binary, man page, wayland session entry)..."
-    sudo make -C "$DWL_SRC_DIR" install
-
-    success "dwl built and installed"
+    make -C "$DWL_DIR" clean >/dev/null 2>&1 || true
+    make -C "$DWL_DIR"
+    sudo make -C "$DWL_DIR" install
 }
-
-# ==========================================
-#             INSTALL LAUNCHER
-# ==========================================
 
 install_launcher() {
-
-    local launcher="$SCRIPT_DIR/stuff/ohmydwl"
-
-    info "Installing ohmydwl launcher..."
-
-    sudo install -Dm755 "$launcher" /usr/local/bin/ohmydwl
-
-    success "ohmydwl launcher installed"
+    sudo install -Dm755 "$SCRIPT_DIR/stuff/ohmydwl" /usr/local/bin/ohmydwl
 }
-
-# ==========================================
-#                 SUMMARY
-# ==========================================
-
-print_summary() {
-
-    echo
-    success "Installation completed!"
-    echo
-
-    if [[ ${#MISSING_PKGS[@]} -gt 0 ]]; then
-        warning "These packages were NOT installed, install them manually (AUR):"
-        warning "  ${MISSING_PKGS[*]}"
-    fi
-
-    info "Start from a TTY with: ohmydwl  (or pick the 'dwl' session in your display manager)"
-    info "Edit ~/.config/dwl/config.h, then rebuild with:"
-    info "  cd ~/.config/dwl && make && sudo make install"
-    warning "~/.config/dwl/autostart.sh sets HDMI-A-1 at 1920x1080@100; adjust it for your monitor."
-    echo
-}
-
-# ==========================================
-#                  MAIN
-# ==========================================
 
 main() {
-
-    parse_args "$@"
-
-    echo
-    echo "=========================================="
-    echo "          OHMYDWL INSTALLER"
-    echo "=========================================="
-    echo
+    printf '\n==========================================\n          OHMYDWL INSTALLER\n==========================================\n\n'
 
     check_requirements
-
     install_packages
     install_config
     build_dwl
     install_launcher
 
-    print_summary
+    success "Installation completed"
+    info "Start with 'ohmydwl' from a TTY, or select the 'dwl' session in your display manager"
+    info "Customize: edit ~/.config/dwl/config.h, then: cd ~/.config/dwl && make && sudo make install"
+    warning "~/.config/dwl/autostart.sh sets HDMI-A-1 at 1920x1080@100; adjust it for your monitor"
 }
 
-main "$@"
+main
