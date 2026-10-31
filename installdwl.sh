@@ -109,7 +109,7 @@ install_config() {
 
    # copy wallpapers to ~/Pictures/wallpapers
     if [[ -d "$SCRIPT_DIR/wallpapers" ]]; then
-        cp "$SCRIPT_DIR/wallpapers" "$HOME/Pictures/"
+        cp -r "$SCRIPT_DIR/wallpapers" "$HOME/Pictures/"
     fi
    
     done
