@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ohmydwl installer (Arch Linux, official repositories only)
+# ohmydwl installer (Arch Linux)
 # Usage: bash installdwl.sh [-y|--yes]
 
 set -Eeuo pipefail
@@ -38,14 +38,13 @@ PACKAGES=(
     flatpak fish eza starship fastfetch htop btop baobab bat
 
     # Terminal / editor / fonts
-    kitty vim micro ttf-jetbrains-mono-nerd
+    foot vim micro ttf-jetbrains-mono-nerd
 
     # Launcher / bar / session
     rofi rofi-emoji waybar wlogout
 
     # Wayland utilities
     hyprshot hyprlock awww waypaper cliphist wl-clipboard wl-clip-persist
-    grim slurp jq
 
     # Notifications
     dunst libnotify
