@@ -2,9 +2,9 @@
 
 this dwl config already includes 
 
-[ipc](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/ipc/ipc.patch),
-[vanitygaps](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/vanitygaps/vanitygaps-0.8.patch),
-[autostart](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/autostart/autostart-0.8.patch),
-[alwayscenter](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/alwayscenter/alwayscenter.patch),
-[dwindle](https://github.com/ulilab-dev/dwl-patch/blob/main/dwindle.patch),
-[swapandfocusdir](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swapandfocusdir/swapandfocusdir.patch)
+[alwayscenter](https://github.com/ulilab-dev/dwl-patch/blob/main/alwayscenter/alwayscenter.patch)
+[autostart](https://github.com/ulilab-dev/dwl-patch/blob/main/autostart/autostart.patch)
+[dwindle](https://github.com/ulilab-dev/dwl-patch/blob/main/dwindle/dwindle.patch)
+[ipc](https://github.com/ulilab-dev/dwl-patch/blob/main/ipc/ipc.patch)
+[swapandfocusdir](https://github.com/ulilab-dev/dwl-patch/blob/main/swapandfocusdir/swapandfocusdir.patch)
+[vanitygaps](https://github.com/ulilab-dev/dwl-patch/blob/main/vanitygaps/vanitygaps.patch)
