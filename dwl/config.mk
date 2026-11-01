@@ -34,3 +34,6 @@ XLIBS =
 # To avoid warnings about them, we do not use -std=c99 and instead of using the
 # gmake default 'CC=c99', we use cc.
 CC = cc
+
+CFLAGS  = -O2 -pipe -flto
+LDFLAGS = -flto

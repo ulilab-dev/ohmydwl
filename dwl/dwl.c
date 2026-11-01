@@ -275,11 +275,6 @@ typedef struct {
 	struct wl_listener destroy;
 } SessionLock;
 
-typedef struct {
-	int x;
-	int y;
-} Vector;
-
 /* function declarations */
 static void applybounds(Client *c, struct wlr_box *bbox);
 static void applygeom(Client *c);
@@ -487,6 +482,7 @@ static struct wlr_box sgeom;
 static struct wl_list mons;
 static Monitor *selmon;
 static int enablegaps = 1;   /* enables gaps, used by togglegaps */
+static struct wl_event_source *status_idle; /* pending coalesced printstatus() */
 static int consumed[KEY_MAX + 1];
 
 /* Transactions: the scene graph is updated only once all visible clients have
@@ -907,6 +903,10 @@ cleanup(void)
 	wlr_xwayland_destroy(xwayland);
 	xwayland = NULL;
 #endif
+	if (status_idle) {
+		wl_event_source_remove(status_idle);
+		status_idle = NULL;
+	}
 	wl_display_destroy_clients(dpy);
 	
 	/* kill child processes */
@@ -1740,30 +1740,32 @@ dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output)
 {
 	Monitor *monitor = ipc_output->mon;
 	Client *c, *focused;
-	int tagmask, state, numclients, is_focused_client, tag;
+	struct { unsigned int state; int numclients; int is_focused_client; } t[TAGCOUNT] = {{0}};
+	unsigned int state;
+	int tag;
 	const char *title, *appid;
 	focused = focustop(monitor);
 	zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-	for (tag = 0 ; tag < TAGCOUNT; tag++) {
-		numclients = state = is_focused_client = 0;
-		tagmask = 1 << tag;
-		if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-			state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-		wl_list_for_each(c, &clients, link) {
-			if (c->mon != monitor)
+	wl_list_for_each(c, &clients, link) {
+		if (c->mon != monitor)
+			continue;
+		for (tag = 0; tag < TAGCOUNT; tag++) {
+			if (!(c->tags & (1u << tag)))
 				continue;
-			if (!(c->tags & tagmask))
-				continue;
+			t[tag].numclients++;
 			if (c == focused)
-				is_focused_client = 1;
+				t[tag].is_focused_client = 1;
 			if (c->isurgent)
-				state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-			numclients++;
+				t[tag].state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
 		}
-		zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, is_focused_client);
+	}
+	for (tag = 0; tag < TAGCOUNT; tag++) {
+		state = t[tag].state;
+		if ((1u << tag) & monitor->tagset[monitor->seltags])
+			state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+		zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
+				t[tag].numclients, t[tag].is_focused_client);
 	}
 	title = focused ? client_get_title(focused) : "";
 	appid = focused ? client_get_appid(focused) : "";
@@ -1984,160 +1986,88 @@ focusstack(const Arg *arg)
 	focusclient(c, NULL, 1);
 }
 
-Vector
-position_of_box(const struct wlr_box *box)
+enum { DirLeft, DirRight, DirUp, DirDown, DirNone };
+
+static int
+direction_of_vector(int dx, int dy)
 {
-	return (Vector){
-		.x = box->x + box->width / 2,
-		.y = box->y + box->height / 2,
-	};
+	if (dx == 0 && dy == 0)
+		return DirNone;
+	/* Y-inverted coordinate system: positive dy is down */
+	if (abs(dy) > abs(dx))
+		return dy > 0 ? DirDown : DirUp;
+	return dx > 0 ? DirRight : DirLeft;
 }
 
-Vector
-diff_of_vectors(Vector *a, Vector *b)
+/* Spatial direction, based on focused client position. */
+static Client *
+client_in_direction(int dir, int skipfloat)
 {
-	return (Vector){
-		.x = b->x - a->x,
-		.y = b->y - a->y,
-	};
-}
+	Client *cf = focustop(selmon), *target = NULL, *c;
+	long long best = LLONG_MAX;
+	int fx, fy;
 
-const char *
-direction_of_vector(Vector *vector)
-{
-	// A zero length vector has no direction
-	if (vector->x == 0 && vector->y == 0) return "";
-
-	if (abs(vector->y) > abs(vector->x)) {
-		// Careful: We are operating in a Y-inverted coordinate system.
-		return (vector->y > 0) ? "bottom" : "top";
-	} else {
-		return (vector->x > 0) ? "right" : "left";
-	}
-}
-
-uint32_t
-vector_length(Vector *vector)
-{
-	// Euclidean distance formula
-	return (uint32_t)sqrt(vector->x * vector->x + vector->y * vector->y);
-}
-
-// Spatial direction, based on focused client position.
-Client *
-client_in_direction(const char *direction, const int *skipfloat)
-{
-	Client *cfocused = focustop(selmon);
-	Vector cfocusedposition;
-	Client *ctarget = NULL;
-	double targetdistance = INFINITY;
-	Client *c;
-
-	if (!cfocused || cfocused->isfullscreen || (skipfloat && cfocused->isfloating))
+	if (dir >= DirNone || !cf || cf->isfullscreen || (skipfloat && cf->isfloating))
 		return NULL;
 
-	cfocusedposition = position_of_box(&cfocused->geom);
+	fx = cf->geom.x + cf->geom.width / 2;
+	fy = cf->geom.y + cf->geom.height / 2;
 
 	wl_list_for_each(c, &clients, link) {
-		Vector cposition;
-		Vector positiondiff;
-		uint32_t distance;
+		int dx, dy;
+		long long d;
 
-		if (c == cfocused)
+		if (c == cf || (skipfloat && c->isfloating) || !VISIBLEON(c, selmon))
 			continue;
 
-		if (skipfloat && c->isfloating)
+		dx = c->geom.x + c->geom.width / 2 - fx;
+		dy = c->geom.y + c->geom.height / 2 - fy;
+		if (direction_of_vector(dx, dy) != dir)
 			continue;
 
-		if (!VISIBLEON(c, selmon))
-			continue;
-
-		cposition = position_of_box(&c->geom);
-		positiondiff = diff_of_vectors(&cfocusedposition, &cposition);
-
-		if (strcmp(direction, direction_of_vector(&positiondiff)) != 0)
-			continue;
-
-		distance = vector_length(&positiondiff);
-
-		 if (distance < targetdistance) {
-			ctarget = c;
-			targetdistance = distance;
+		d = (long long)dx * dx + (long long)dy * dy;
+		if (d < best) {
+			best = d;
+			target = c;
 		}
 	}
 
-	return ctarget;
+	return target;
 }
 
 void
 focusdir(const Arg *arg)
 {
-	Client *c = NULL;
+	Client *c = client_in_direction(arg->ui, 0);
 
-	if (arg->ui == 0)
-		c = client_in_direction("left", (int *)0);
-	if (arg->ui == 1)
-		c = client_in_direction("right", (int *)0);
-	if (arg->ui == 2)
-		c = client_in_direction("top", (int *)0);
-	if (arg->ui == 3)
-		c = client_in_direction("bottom", (int *)0);
-
-	if (c != NULL)
+	if (c)
 		focusclient(c, NULL, 1);
 }
 
-void
-wl_list_swap(struct wl_list *list1, struct wl_list *list2)
+/* Swap two nodes of the same list; safe for adjacent nodes. */
+static void
+list_swap(struct wl_list *a, struct wl_list *b)
 {
-	struct wl_list *prev1, *next1, *prev2, *next2;
-	struct wl_list temp;
+	struct wl_list *pa = a->prev;
 
-	if (list1 == list2) {
-		// No need to swap the same list
+	if (a == b)
 		return;
-	}
-
-	// Get the lists before and after list1
-	prev1 = list1->prev;
-	next1 = list1->next;
-
-	// Get the lists before and after list2
-	prev2 = list2->prev;
-	next2 = list2->next;
-
-	// Update the next and previous pointers of adjacent lists
-	prev1->next = list2;
-	next1->prev = list2;
-	prev2->next = list1;
-	next2->prev = list1;
-
-	// Swap the next and previous pointers of the lists to actually swap them
-	temp = *list1;
-	*list1 = *list2;
-	*list2 = temp;
+	wl_list_remove(a);
+	wl_list_insert(b, a);              /* a directly after b */
+	wl_list_remove(b);
+	wl_list_insert(pa == b ? a : pa, b);
 }
 
 void
 swapdir(const Arg *arg)
 {
-	Client *c = NULL;
-	Client *cfocused;
+	Client *cfocused, *c = client_in_direction(arg->ui, 1);
 
-	if (arg->ui == 0)
-		c = client_in_direction("left", (int *)1);
-	if (arg->ui == 1)
-		c = client_in_direction("right", (int *)1);
-	if (arg->ui == 2)
-		c = client_in_direction("top", (int *)1);
-	if (arg->ui == 3)
-		c = client_in_direction("bottom", (int *)1);
-
-	if (c == NULL)
+	if (!c)
 		return;
 
 	cfocused = focustop(selmon);
-	wl_list_swap(&cfocused->link, &c->link);
+	list_swap(&cfocused->link, &c->link);
 	arrange(selmon);
 }
 
@@ -2888,13 +2818,23 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
 	wlr_seat_pointer_notify_motion(seat, time, sx, sy);
 }
 
+static void
+printstatus_flush(void *data)
+{
+	Monitor *m;
+
+	status_idle = NULL;
+	wl_list_for_each(m, &mons, link)
+		dwl_ipc_output_printstatus(m);
+}
+
 void
 printstatus(void)
 {
-	Monitor *m = NULL;
-
-	wl_list_for_each(m, &mons, link)
-		dwl_ipc_output_printstatus(m);
+	/* Coalesce multiple requests within one event-loop iteration */
+	if (!status_idle)
+		status_idle = wl_event_loop_add_idle(wl_display_get_event_loop(dpy),
+				printstatus_flush, NULL);
 }
 
 void

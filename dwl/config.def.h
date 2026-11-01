@@ -48,8 +48,8 @@ static const Layout layouts[] = {
 	/* symbol     arrange function */
 	{ "[]=",      dwindle },
 	{ "><>",      NULL },    /* no layout function means floating behavior */
-	{ "[M]",      tile },
-	{ "[]=",      monocle },
+	{ "[]=",      tile },
+	{ "[M]",      monocle },
 
 };
 
@@ -196,7 +196,7 @@ static const Key keys[] = {
 /*	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} }, */
 
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_f,           togglefloating,   {0} },
-	{ MODKEY,                    XKB_KEY_e,           togglefullscreen, {0} },
+	{ MODKEY,                    XKB_KEY_f,           togglefullscreen, {0} },
 	{ MODKEY,                    XKB_KEY_0,           view,             {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright,  tag,              {.ui = ~0} },
 	
