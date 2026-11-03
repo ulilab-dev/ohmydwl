@@ -24,16 +24,18 @@ WLR_LIBS = `$(PKG_CONFIG) --libs wlroots-0.20`
 #	-I$(PWD)/wlroots/0.20/include/wlroots-0.20
 #WLR_LIBS = -Wl,-rpath,$(PWD)/wlroots/0.20/lib64 -L$(PWD)/wlroots/0.20/lib64 -lwlroots-0.20
 
-XWAYLAND =
-XLIBS =
-# Uncomment to build XWayland support
-#XWAYLAND = -DXWAYLAND
-#XLIBS = xcb xcb-icccm
+# XWayland support (needed for X11 apps/games, e.g. Minecraft via Prism Launcher)
+XWAYLAND = -DXWAYLAND
+XLIBS = xcb xcb-icccm
 
 # dwl itself only uses C99 features, but wlroots' headers use anonymous unions (C11).
 # To avoid warnings about them, we do not use -std=c99 and instead of using the
 # gmake default 'CC=c99', we use cc.
 CC = cc
 
-CFLAGS  = -O2 -pipe -flto
-LDFLAGS = -flto
+# Portable and light: -O2 builds smaller and faster on older CPUs than -O3,
+# and section GC drops unused code. Works on any x86-64/ARM machine.
+# For a build used only on this machine, add -march=native to CFLAGS.
+CFLAGS  = -O2 -pipe -flto=auto -fno-plt -fomit-frame-pointer \
+	-ffunction-sections -fdata-sections -fno-math-errno -fno-trapping-math
+LDFLAGS = -flto=auto -Wl,-O1 -Wl,--as-needed -Wl,--gc-sections -s

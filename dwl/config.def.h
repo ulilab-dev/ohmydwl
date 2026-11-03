@@ -14,6 +14,7 @@ static const unsigned int gappiv           = 2; /* vert inner gap between window
 static const unsigned int gappoh           = 4; /* horiz outer gap between windows and screen edge */
 static const unsigned int gappov           = 4; /* vert outer gap between windows and screen edge */
 static const unsigned int snap             = 32; /* snap pixel */
+static const int adaptive_sync         = 0;  /* 1 = enable VRR (FreeSync/G-Sync) if the monitor supports it */
 static const float rootcolor[]             = COLOR(0x222222ff);
 static const float bordercolor[]           = COLOR(0x444444ff);
 static const float focuscolor[]            = COLOR(0xaaaaadad);

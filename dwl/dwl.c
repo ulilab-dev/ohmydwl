@@ -855,6 +855,20 @@ capturerequest(struct wl_listener *listener, void *data)
 	struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request *request = data;
 	Client *view = request->toplevel_handle->data;
 
+	if (!view->image_capture_scene) {
+		if (!client_surface(view) || !client_surface(view)->mapped)
+			return;
+		view->image_capture_scene = wlr_scene_create();
+		if (view->type == XDGShell)
+			view->capture.image_capture_tree = wlr_scene_xdg_surface_create(
+					&view->image_capture_scene->tree, view->surface.xdg);
+#ifdef XWAYLAND
+		else
+			view->capture.image_capture_scene_surface = wlr_scene_surface_create(
+					&view->image_capture_scene->tree, view->surface.xwayland->surface);
+#endif
+	}
+
 	if (!view->image_capture_source) {
 		view->image_capture_source = wlr_ext_image_capture_source_v1_create_with_scene_node(
 				&view->image_capture_scene->tree.node, event_loop, alloc, drw);
@@ -1343,6 +1357,17 @@ createmon(struct wl_listener *listener, void *data)
 	}
 	wlr_output_commit_state(wlr_output, &state);
 	wlr_output_state_finish(&state);
+
+	/* Optional VRR: only applied if the output accepts it, so a monitor
+	 * without support is never left in a failed state. */
+	if (adaptive_sync && wlr_output->enabled) {
+		struct wlr_output_state vrr;
+		wlr_output_state_init(&vrr);
+		wlr_output_state_set_adaptive_sync_enabled(&vrr, 1);
+		if (wlr_output_test_state(wlr_output, &vrr))
+			wlr_output_commit_state(wlr_output, &vrr);
+		wlr_output_state_finish(&vrr);
+	}
 
 	wl_list_insert(&mons, &m->link);
 	printstatus();
@@ -2463,13 +2488,8 @@ mapnotify(struct wl_listener *listener, void *data)
 	c->foreign_toplevel_handle = wlr_ext_foreign_toplevel_handle_v1_create(
 			foreign_toplevel_list, &foreign_toplevel_state);
 	c->foreign_toplevel_handle->data = c;
-	c->image_capture_scene = wlr_scene_create();
-	if (c->type == XDGShell)
-		c->capture.image_capture_tree = wlr_scene_xdg_surface_create(&c->image_capture_scene->tree, c->surface.xdg);
-#ifdef XWAYLAND
-	else
-		c->capture.image_capture_scene_surface = wlr_scene_surface_create(&c->image_capture_scene->tree, c->surface.xwayland->surface);
-#endif
+	/* The screen-capture scene is built lazily in capturerequest(), so
+	 * windows nobody is capturing do not keep a second scene graph in sync. */
 
 
 	/* Set initial monitor, tags, floating status, and focus:
@@ -3402,8 +3422,6 @@ setup(void)
 
 	wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL, dwl_ipc_manager_bind);
 
-	wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL, dwl_ipc_manager_bind);
-
 	/* Make sure XWayland clients don't connect to the parent X server,
 	 * e.g when running in the x11 backend or the wayland backend and the
 	 * compositor has Xwayland support */
@@ -3808,15 +3826,17 @@ unmapnotify(struct wl_listener *listener, void *data)
 		wlr_ext_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel_handle);
 		c->foreign_toplevel_handle = NULL;
 	}
+	if (c->image_capture_scene) {
 #ifdef XWAYLAND
-	if (c->type != XDGShell && c->capture.image_capture_scene_surface) {
-		wlr_scene_node_destroy(&c->capture.image_capture_scene_surface->buffer->node);
-		c->capture.image_capture_scene_surface = NULL;
-	}
+		if (c->type != XDGShell && c->capture.image_capture_scene_surface) {
+			wlr_scene_node_destroy(&c->capture.image_capture_scene_surface->buffer->node);
+			c->capture.image_capture_scene_surface = NULL;
+		}
 #endif
-
-	wlr_scene_node_destroy(&c->image_capture_scene->tree.node);
-	c->image_capture_scene = NULL;
+		wlr_scene_node_destroy(&c->image_capture_scene->tree.node);
+		c->image_capture_scene = NULL;
+	}
+	c->capture.image_capture_tree = NULL;
 	c->image_capture_source = NULL;
 	wlr_scene_node_destroy(&c->scene->node);
 	client_surface(c)->data = NULL;
